@@ -44,5 +44,5 @@
 
   ext.cmdMap[command.name] = command;
   seal.ext.register(ext);
-  seal.ext.registerStringConfig(ext, 'callback_url', 'http://127.0.0.1:3210/callback');
+  seal.ext.registerStringConfig(ext, 'callback_url', 'http://aice:3210/callback');
 })();

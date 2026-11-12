@@ -36,7 +36,7 @@ curl --data-binary '你好，Aice' http://127.0.0.1:3210/callback
 ```
 
 1. 在海豹 WebUI 的「扩展功能 → JS 扩展」上传 `plugins/sealdice/aice-callback.js`，然后重载 JS。
-2. 在插件设置中把 `callback_url` 设为**从海豹进程能访问**的 Aice 地址。海豹和 Aice 在同一 Docker 网络时，可以用 `http://aice:3210/callback`（假设服务名为 `aice`），并为 Aice 设置 `AICE_BIND_ADDR=0.0.0.0:3210`。容器里的 `127.0.0.1` 指向容器自身。
+2. 插件默认使用 `http://aice:3210/callback`，适用于海豹和 Aice 在同一 Docker 网络的部署。如果已安装过插件，请检查设置里的 `callback_url` 是否仍是旧地址。两个服务都直接在同一宿主机运行时，可以填 `http://127.0.0.1:3210/callback`。
 3. 在测试会话发 `.aiceecho 你好，Aice`，骰娘应回复 `你好，Aice`。若会话里还没启用扩展，先发 `.ext aice-callback on`。QQ 官方机器人可使用 `/aiceecho`，如果平台要求登记指令，就在 QQ 开放平台添加 `aiceecho`。
 
 ## 目录
