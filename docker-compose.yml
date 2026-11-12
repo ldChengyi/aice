@@ -1,0 +1,13 @@
+services:
+  aice:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3210:3210"
+    networks:
+      - sealdice
+
+networks:
+  sealdice:
+    external: true
+    name: ${SEALDICE_NETWORK:-sealdice_sealdice_network}
