@@ -1,4 +1,4 @@
-ARG AICE_IMAGE_PREFIX=m.daocloud.io/docker.io/library
+ARG AICE_IMAGE_PREFIX=docker.io/library
 FROM ${AICE_IMAGE_PREFIX}/rust:1.99.1-bookworm AS build
 ARG AICE_CARGO_MIRROR=sparse+https://rsproxy.cn/index/
 WORKDIR /app
