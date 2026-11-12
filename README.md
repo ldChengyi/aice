@@ -27,6 +27,12 @@ curl -fsS http://127.0.0.1:3210/healthz
 
 在海豹插件里把 `callback_url` 填为 `http://aice:3210/callback`。`127.0.0.1:3210` 的端口映射供服务器本机验证使用。
 
+构建默认从 DaoCloud 拉取 Rust 和 Debian 基础镜像，并通过 RsProxy 下载 Cargo 依赖。需要切回 Docker Hub 和 crates.io 时运行：
+
+```sh
+AICE_IMAGE_PREFIX=docker.io/library AICE_CARGO_MIRROR= docker compose up -d --build
+```
+
 ## 海豹回调测试
 
 `POST /callback` 原样返回请求正文。

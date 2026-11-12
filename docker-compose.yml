@@ -1,6 +1,10 @@
 services:
   aice:
-    build: .
+    build:
+      context: .
+      args:
+        AICE_IMAGE_PREFIX: ${AICE_IMAGE_PREFIX:-m.daocloud.io/docker.io/library}
+        AICE_CARGO_MIRROR: ${AICE_CARGO_MIRROR-sparse+https://rsproxy.cn/index/}
     restart: unless-stopped
     ports:
       - "127.0.0.1:3210:3210"
