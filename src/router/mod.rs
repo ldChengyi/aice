@@ -1,33 +1,37 @@
 mod health;
 
-use crate::service::agent::AgentModel;
+use crate::{
+    init::AppState,
+    logic::chat::{self as chat_logic, ChatError},
+};
 use axum::{
     Router,
     extract::State,
     http::StatusCode,
     routing::{get, post},
 };
-use std::sync::Arc;
 
-pub fn build(model: Option<Arc<dyn AgentModel>>) -> Router {
+pub fn build(state: AppState) -> Router {
     Router::new()
         .route("/healthz", get(health::check))
         .route("/chat", post(chat))
-        .with_state(model)
+        .with_state(state)
 }
 
 async fn chat(
-    State(model): State<Option<Arc<dyn AgentModel>>>,
+    State(state): State<AppState>,
     body: String,
 ) -> Result<String, (StatusCode, &'static str)> {
-    let prompt = body.trim();
-    if prompt.is_empty() {
-        return Err((StatusCode::BAD_REQUEST, "请输入问题。"));
-    }
-
-    let model = model.ok_or((StatusCode::SERVICE_UNAVAILABLE, "Aice 尚未配置聊天模型。"))?;
-    model.complete(prompt).await.map_err(|error| {
-        eprintln!("chat request failed: {error}");
-        (StatusCode::BAD_GATEWAY, "模型请求失败，请稍后再试。")
-    })
+    chat_logic::reply(state.agent_model.as_deref(), &body)
+        .await
+        .map_err(|error| match error {
+            ChatError::EmptyPrompt => (StatusCode::BAD_REQUEST, "请输入问题。"),
+            ChatError::ModelUnavailable => {
+                (StatusCode::SERVICE_UNAVAILABLE, "Aice 尚未配置聊天模型。")
+            }
+            ChatError::ModelFailed(error) => {
+                eprintln!("chat request failed: {error}");
+                (StatusCode::BAD_GATEWAY, "模型请求失败，请稍后再试。")
+            }
+        })
 }

@@ -30,11 +30,15 @@ curl -i http://127.0.0.1:3210/healthz
 
 Compose 默认只读挂载项目根目录的 `config.yaml`。首次部署时先复制示例配置，在其中启用 `llm`，并在项目根目录的 `.env` 中填写 `DEEPSEEK_API_KEY=你的密钥`。如果配置存放在其他位置，可以在 `.env` 中设置 `AICE_CONFIG_FILE`。Dockerfile 为容器设置的 `AICE_BIND_ADDR=0.0.0.0:3210` 优先于 YAML 中的监听地址。
 
+首次启动前，在项目根目录的 `.env` 中设置 `AICE_POSTGRES_PASSWORD`。Compose 会启动 PostgreSQL 17，使用 `postgres_data` 卷保存数据。Aice 在 Docker 内部网络连接数据库，宿主机无需映射 5432 端口。
+
 ```sh
 test -f config.yaml || cp config.example.yaml config.yaml
 docker compose up -d --build
 curl -fsS http://127.0.0.1:3210/healthz
 ```
+
+本地直接运行 Aice 时，可通过 `PGHOST` 启用数据库连接，并用 `PGPORT`、`PGDATABASE`、`PGUSER`、`PGPASSWORD` 指定连接参数。
 
 `127.0.0.1:3210` 的端口映射供服务器本机验证使用。
 
@@ -61,12 +65,17 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 
 ```text
 src/
-├── bin/aice.rs       # 可执行入口，组装并启动服务
+├── bin/aice.rs       # 读取配置并启动 HTTP 服务
 ├── lib.rs            # 共享模块入口
 ├── config/           # YAML 和环境变量配置读取
-├── router/           # HTTP 路由和请求处理
-├── service/          # 业务流程
-└── infra/            # 模型、数据库和外部服务的实现
+├── init/             # 初始化 PostgreSQL 连接池和模型，组装 AppState
+├── router/           # HTTP 入口，解析请求并转换响应
+├── logic/            # 组合 service，执行具体业务流程
+├── service/          # 模型调用接口和数据库服务
+├── dal/              # PostgreSQL 连接池和数据访问
+└── infra/            # Rig 和 DeepSeek 等外部服务的实现
 ```
 
-新增 HTTP 能力时，在 `router/` 注册入口，在 `service/` 实现业务流程。需要调用 Rig、数据库或外部 API 时，在 `infra/` 添加对应实现。
+启动时，`main` 通过 `init::AppState::new` 初始化共享实例，再把 `AppState` 交给 Axum。连接池和模型在启动时创建一次，由请求共享。
+
+`POST /chat` 经 `router → logic::chat → service::agent` 调用模型，实际请求由 `infra::llm` 发给 DeepSeek。PostgreSQL 的连接由 `init → service::database → dal::postgres` 建立。后续业务需要读写数据时，由 `logic` 调用 `service`，再由 `service` 通过 `dal` 访问数据库。

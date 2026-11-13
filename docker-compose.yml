@@ -6,9 +6,16 @@ services:
         AICE_IMAGE_PREFIX: ${AICE_IMAGE_PREFIX:-docker.io/library}
         AICE_CARGO_MIRROR: ${AICE_CARGO_MIRROR-sparse+https://rsproxy.cn/index/}
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
     environment:
       AICE_CONFIG_PATH: /app/config.yaml
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      PGHOST: postgres
+      PGDATABASE: aice
+      PGUSER: aice
+      PGPASSWORD: ${AICE_POSTGRES_PASSWORD:?set AICE_POSTGRES_PASSWORD in .env}
     volumes:
       - type: bind
         source: ${AICE_CONFIG_FILE:-./config.yaml}
@@ -20,8 +27,31 @@ services:
       - "127.0.0.1:3210:3210"
     networks:
       - sealdice
+      - database
+
+  postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aice
+      POSTGRES_USER: aice
+      POSTGRES_PASSWORD: ${AICE_POSTGRES_PASSWORD:?set AICE_POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "aice", "-d", "aice"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    networks:
+      - database
 
 networks:
   sealdice:
     external: true
     name: ${SEALDICE_NETWORK:-sealdice_sealdice_network}
+  database:
+    internal: true
+
+volumes:
+  postgres_data:
