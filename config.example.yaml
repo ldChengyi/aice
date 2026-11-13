@@ -1,6 +1,7 @@
 bind_addr: "127.0.0.1:3210"
 
-# 接入 LLM 时取消注释，并填写实际服务地址和模型名。
+# 使用 DeepSeek 时取消注释，并在环境变量中设置 DEEPSEEK_API_KEY。
 # llm:
-#   base_url: "https://llm.example.com/v1"
-#   model: "your-model"
+#   provider: deepseek
+#   base_url: "https://api.deepseek.com"
+#   model: "deepseek-flash"

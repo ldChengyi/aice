@@ -11,8 +11,17 @@ pub struct Config {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct LlmConfig {
+    #[serde(default)]
+    pub provider: LlmProvider,
     pub base_url: String,
     pub model: String,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LlmProvider {
+    #[default]
+    Deepseek,
 }
 
 impl Default for Config {

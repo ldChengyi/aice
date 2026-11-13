@@ -10,7 +10,11 @@ cargo run
 
 服务默认监听 `127.0.0.1:3210`。需要自定义配置时，复制 `config.example.yaml` 为 `config.yaml` 后修改。也可以用 `AICE_CONFIG_PATH` 指定配置文件，或用 `AICE_BIND_ADDR` 覆盖其中的监听地址。
 
-`llm` 是可选配置，包含 `base_url` 和 `model`。目前服务只读取这些值，模型调用将在接入 LLM 时实现。
+`llm` 是可选配置。要在终端试跑 DeepSeek，在 `config.yaml` 中启用示例的 `llm` 配置，并在当前终端设置 `DEEPSEEK_API_KEY`。省略 `llm.provider` 时默认使用 `deepseek`。
+
+```sh
+cargo run --locked --example deepseek -- '给 1920 年代的记者林秋写一段 100 字的调查员背景。'
+```
 
 ```sh
 curl -i http://127.0.0.1:3210/healthz
