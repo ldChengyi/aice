@@ -65,6 +65,14 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 
 启动 Aice 后，在浏览器打开 `http://127.0.0.1:3210/personas`。页面由 Leptos 组件在服务端渲染，点击列表项可展开示例人设。
 
+要用公网 IP 访问人设页，在 Linux 服务器的项目目录运行以下命令。
+
+```sh
+docker compose up -d --build web
+```
+
+Nginx 默认监听宿主机的 80 端口。云安全组和服务器防火墙放行对应的 TCP 端口后，访问 `http://服务器IP/` 会跳转到 `/personas`。公网入口只提供人设页和它的样式。如果 80 端口已有服务，在 `.env` 设置 `AICE_PUBLIC_PORT=8080` 后重新运行命令，再访问 `http://服务器IP:8080/`。
+
 ## 目录
 
 ```text
