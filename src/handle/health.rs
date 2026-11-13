@@ -2,10 +2,10 @@ use axum::Json;
 use serde::Serialize;
 
 #[derive(Serialize)]
-pub(super) struct Health {
+pub(crate) struct Health {
     status: &'static str,
 }
 
-pub(super) async fn check() -> Json<Health> {
+pub(crate) async fn check() -> Json<Health> {
     Json(Health { status: "ok" })
 }

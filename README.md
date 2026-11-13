@@ -61,6 +61,10 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 2. 插件的 `chat_url` 默认为 `http://aice:3210/chat`，适用于海豹和 Aice 在同一 Docker 网络的部署。旧版用过自定义地址时，把地址填入新的 `chat_url`，并将路径改成 `/chat`。两个服务都直接在同一宿主机运行时，可以填 `http://127.0.0.1:3210/chat`。
 3. 在会话里发 `.aicechat 用一句话介绍一下 COC 跑团`。若会话里还没启用扩展，先发 `.ext aice-callback on`。使用 QQ 官方机器人的斜杠指令时，在 QQ 开放平台登记 `aicechat`。
 
+## 机器人人设预览
+
+启动 Aice 后，在浏览器打开 `http://127.0.0.1:3210/personas`。页面由 Leptos 组件在服务端渲染，点击列表项可展开示例人设。
+
 ## 目录
 
 ```text
@@ -69,7 +73,11 @@ src/
 ├── lib.rs            # 共享模块入口
 ├── config/           # YAML 和环境变量配置读取
 ├── init/             # 初始化 PostgreSQL 连接池和模型，组装 AppState
-├── router/           # HTTP 入口，解析请求并转换响应
+├── router/           # 注册 HTTP 路由并绑定处理函数
+├── handle/           # 接收 HTTP 请求并生成响应
+├── frontend/
+│   ├── pages/        # Leptos 页面和组件
+│   └── styles/       # CSS 样式
 ├── logic/            # 组合 service，执行具体业务流程
 ├── service/          # 模型调用接口和数据库服务
 ├── dal/              # PostgreSQL 连接池和数据访问
@@ -78,4 +86,6 @@ src/
 
 启动时，`main` 通过 `init::AppState::new` 初始化共享实例，再把 `AppState` 交给 Axum。连接池和模型在启动时创建一次，由请求共享。
 
-`POST /chat` 经 `router → logic::chat → service::agent` 调用模型，实际请求由 `infra::llm` 发给 DeepSeek。PostgreSQL 的连接由 `init → service::database → dal::postgres` 建立。后续业务需要读写数据时，由 `logic` 调用 `service`，再由 `service` 通过 `dal` 访问数据库。
+`POST /chat` 经 `router → handle::chat → logic::chat → service::agent` 调用模型，实际请求由 `infra::llm` 发给 DeepSeek。`GET /personas` 经 `router → handle::personas → frontend::pages::personas` 渲染人设列表，浏览器通过 `/assets/personas.css` 加载样式。
+
+PostgreSQL 的连接由 `init → service::database → dal::postgres` 建立。后续业务需要读写数据时，由 `logic` 调用 `service`，再由 `service` 通过 `dal` 访问数据库。
