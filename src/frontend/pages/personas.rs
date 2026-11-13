@@ -13,7 +13,7 @@ fn PersonaList() -> impl IntoView {
                 <meta charset="utf-8" />
                 <meta name="viewport" content="width=device-width, initial-scale=1" />
                 <title>"机器人人设 · Aice"</title>
-                <link rel="stylesheet" href="/assets/personas.css" />
+                <link rel="stylesheet" href="/ui/assets/personas.css" />
             </head>
             <body>
                 <header class="site-header">

@@ -63,7 +63,7 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 
 ## 机器人人设预览
 
-启动 Aice 后，在浏览器打开 `http://127.0.0.1:3210/personas`。页面由 Leptos 组件在服务端渲染，点击列表项可展开示例人设。
+启动 Aice 后，在浏览器打开 `http://127.0.0.1:3210/ui/personas`。页面由 Leptos 组件在服务端渲染，点击列表项可展开示例人设。
 
 要用公网 IP 访问人设页，在 Linux 服务器的项目目录运行以下命令。
 
@@ -71,7 +71,9 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 docker compose up -d --build web
 ```
 
-Nginx 默认监听宿主机的 80 端口。云安全组和服务器防火墙放行对应的 TCP 端口后，访问 `http://服务器IP/` 会跳转到 `/personas`。公网入口只提供人设页和它的样式。如果 80 端口已有服务，在 `.env` 设置 `AICE_PUBLIC_PORT=8080` 后重新运行命令，再访问 `http://服务器IP:8080/`。
+Nginx 默认监听宿主机的 80 端口。云安全组和服务器防火墙放行对应的 TCP 端口后，访问 `http://服务器IP/` 会跳转到 `/ui/personas`。Nginx 转发整个 `/ui/` 路径。新增页面或样式时，把路由注册到 Axum 的 `frontend` 路由组即可。
+
+如果 80 端口已有服务，在 `.env` 设置 `AICE_PUBLIC_PORT=8080` 后重新运行命令，并通过 `http://服务器IP:8080/` 访问。
 
 ## 目录
 
@@ -94,6 +96,6 @@ src/
 
 启动时，`main` 通过 `init::AppState::new` 初始化共享实例，再把 `AppState` 交给 Axum。连接池和模型在启动时创建一次，由请求共享。
 
-`POST /chat` 经 `router → handle::chat → logic::chat → service::agent` 调用模型，实际请求由 `infra::llm` 发给 DeepSeek。`GET /personas` 经 `router → handle::personas → frontend::pages::personas` 渲染人设列表，浏览器通过 `/assets/personas.css` 加载样式。
+`POST /chat` 经 `router → handle::chat → logic::chat → service::agent` 调用模型，实际请求由 `infra::llm` 发给 DeepSeek。`GET /ui/personas` 经 `router → handle::personas → frontend::pages::personas` 渲染人设列表，浏览器通过 `/ui/assets/personas.css` 加载样式。
 
 PostgreSQL 的连接由 `init → service::database → dal::postgres` 建立。后续业务需要读写数据时，由 `logic` 调用 `service`，再由 `service` 通过 `dal` 访问数据库。
