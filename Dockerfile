@@ -12,6 +12,7 @@ RUN if [ -n "$AICE_CARGO_MIRROR" ]; then \
     cargo build --locked --release --bin aice
 
 FROM ${AICE_IMAGE_PREFIX}/debian:bookworm-slim
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /app/target/release/aice /usr/local/bin/aice
 ENV AICE_BIND_ADDR=0.0.0.0:3210
 EXPOSE 3210
