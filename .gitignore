@@ -1,4 +1,5 @@
 /target/
+/config.yaml
 /.idea/
 .DS_Store
 .env

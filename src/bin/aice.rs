@@ -4,7 +4,7 @@ use tokio::net::TcpListener;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let address = Config::from_env()?.bind_addr;
+    let address = Config::load()?.bind_addr;
     let listener = TcpListener::bind(address)
         .await
         .map_err(|error| format!("cannot listen on {address}: {error}"))?;

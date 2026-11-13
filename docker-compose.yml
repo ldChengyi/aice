@@ -6,6 +6,15 @@ services:
         AICE_IMAGE_PREFIX: ${AICE_IMAGE_PREFIX:-docker.io/library}
         AICE_CARGO_MIRROR: ${AICE_CARGO_MIRROR-sparse+https://rsproxy.cn/index/}
     restart: unless-stopped
+    environment:
+      AICE_CONFIG_PATH: /app/config.yaml
+    volumes:
+      - type: bind
+        source: ${AICE_CONFIG_FILE:-./config.yaml}
+        target: /app/config.yaml
+        read_only: true
+        bind:
+          create_host_path: false
     ports:
       - "127.0.0.1:3210:3210"
     networks:

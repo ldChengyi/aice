@@ -8,7 +8,9 @@
 cargo run
 ```
 
-服务默认监听 `127.0.0.1:3210`，可通过 `AICE_BIND_ADDR` 覆盖监听地址。
+服务默认监听 `127.0.0.1:3210`。需要自定义配置时，复制 `config.example.yaml` 为 `config.yaml` 后修改。也可以用 `AICE_CONFIG_PATH` 指定配置文件，或用 `AICE_BIND_ADDR` 覆盖其中的监听地址。
+
+`llm` 是可选配置，包含 `base_url` 和 `model`。目前服务只读取这些值，模型调用将在接入 LLM 时实现。
 
 ```sh
 curl -i http://127.0.0.1:3210/healthz
@@ -20,7 +22,10 @@ curl -i http://127.0.0.1:3210/healthz
 
 在 Aice 项目根目录启动服务。Compose 默认接入现有的 `sealdice_sealdice_network`。可以用 `docker network ls` 确认名称，名称不同时通过 `SEALDICE_NETWORK` 指定。
 
+Compose 默认只读挂载项目根目录的 `config.yaml`。首次部署时先复制示例配置，再按需修改。如果配置存放在其他位置，可以在 `.env` 中设置 `AICE_CONFIG_FILE`。Dockerfile 为容器设置的 `AICE_BIND_ADDR=0.0.0.0:3210` 优先于 YAML 中的监听地址。
+
 ```sh
+test -f config.yaml || cp config.example.yaml config.yaml
 docker compose up -d --build
 curl -fsS http://127.0.0.1:3210/healthz
 ```
@@ -51,7 +56,7 @@ curl --data-binary '你好，Aice' http://127.0.0.1:3210/callback
 src/
 ├── bin/aice.rs       # 可执行入口，组装并启动服务
 ├── lib.rs            # 共享模块入口
-├── config.rs         # 环境变量读取和校验
+├── config/           # YAML 和环境变量配置读取
 ├── router/           # HTTP 路由和请求处理
 ├── service/          # 业务流程
 └── infra/            # 模型、数据库和外部服务的实现
