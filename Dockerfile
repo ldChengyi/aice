@@ -4,6 +4,8 @@ ARG AICE_CARGO_MIRROR=sparse+https://rsproxy.cn/index/
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src ./src
+COPY crates ./crates
+COPY ["character-card-templates/", "./character-card-templates/"]
 RUN if [ -n "$AICE_CARGO_MIRROR" ]; then \
         mkdir -p .cargo && \
         printf '[source.crates-io]\nreplace-with = "mirror"\n[source.mirror]\nregistry = "%s"\n' \

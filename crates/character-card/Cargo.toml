@@ -1,0 +1,13 @@
+[package]
+name = "character-card"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+character-card-templates.workspace = true
+calamine.workspace = true
+quick-xml.workspace = true
+schemars.workspace = true
+serde.workspace = true
+zip.workspace = true

@@ -5,6 +5,7 @@ use std::{env, error::Error, fs, io::ErrorKind, net::SocketAddr, path::PathBuf};
 #[serde(default, deny_unknown_fields)]
 pub struct Config {
     pub bind_addr: SocketAddr,
+    pub public_base_url: Option<String>,
     pub llm: Option<LlmConfig>,
 }
 
@@ -28,6 +29,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             bind_addr: SocketAddr::from(([127, 0, 0, 1], 3210)),
+            public_base_url: None,
             llm: None,
         }
     }
@@ -60,6 +62,22 @@ impl Config {
             Err(error) => return Err(format!("cannot read AICE_BIND_ADDR: {error}").into()),
         }
 
+        if let Some(base) = &mut config.public_base_url {
+            *base = base.trim_end_matches('/').to_owned();
+            let uri: axum::http::Uri = base
+                .parse()
+                .map_err(|_| "public_base_url 必须是有效的 HTTP(S) 地址")?;
+            if !matches!(uri.scheme_str(), Some("http" | "https"))
+                || uri.authority().is_none()
+                || uri
+                    .authority()
+                    .is_some_and(|authority| authority.as_str().contains('@'))
+                || !matches!(uri.path(), "" | "/")
+                || uri.query().is_some()
+            {
+                return Err("public_base_url 应为访问服务的根地址，例如 https://aice.example.com，不含路径或查询参数".into());
+            }
+        }
         Ok(config)
     }
 }

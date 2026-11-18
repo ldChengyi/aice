@@ -1,15 +1,52 @@
-[package]
-name = "aice"
+[workspace]
+members = [".", "character-card-templates", "crates/character-card", "crates/character-card-mcp"]
+default-members = ["."]
+resolver = "3"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+publish = false
 
-[dependencies]
+[workspace.dependencies]
+character-card-templates = { path = "character-card-templates", version = "0.1.0" }
+character-card = { path = "crates/character-card", version = "0.1.0" }
+character-card-mcp = { path = "crates/character-card-mcp", version = "0.1.0" }
 async-trait = "0.1"
 axum = "0.8"
+bytes = "1"
+calamine = { version = "0.38", default-features = false }
 leptos = { version = "0.8", default-features = false, features = ["ssr"] }
 qqbot-sdk-rs = "0.2"
+quick-xml = "0.42"
 rig-core = { version = "0.46", features = ["reqwest"] }
+rmcp = { version = "3.11", default-features = false }
+schemars = "1"
 serde = { version = "1", features = ["derive"] }
+serde_json = "1"
 serde_yaml_ng = "0.10"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio", "postgres"] }
-tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "time"] }
+tokio = "1"
+uuid = { version = "1", features = ["v4"] }
+zip = { version = "9.6", default-features = false, features = ["deflate"] }
+
+[package]
+name = "aice"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+character-card.workspace = true
+character-card-mcp.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+leptos.workspace = true
+qqbot-sdk-rs.workspace = true
+rig-core.workspace = true
+rmcp = { workspace = true, features = ["client", "server"] }
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml_ng.workspace = true
+sqlx.workspace = true
+tokio = { workspace = true, features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }

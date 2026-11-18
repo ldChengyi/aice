@@ -1,21 +1,19 @@
 use crate::{
     config::{LlmConfig, LlmProvider},
-    service::agent::AgentModel,
+    service::agent::{AgentModel, ModelError},
 };
 use async_trait::async_trait;
 use rig_core::{
     Model,
-    completion::CompletionRequest,
+    completion::{CompletionRequest, CompletionResponse},
     providers::openai::{
         OpenAIConfig,
         wire::{Chat, DEEPSEEK},
     },
 };
-use std::{env, error::Error, time::Duration};
+use std::env;
 
-pub fn build_model(
-    config: &LlmConfig,
-) -> Result<Box<dyn AgentModel>, Box<dyn Error + Send + Sync>> {
+pub fn build_model(config: &LlmConfig) -> Result<Box<dyn AgentModel>, ModelError> {
     match config.provider {
         LlmProvider::Deepseek => Ok(Box::new(DeepSeekModel::new(config)?)),
     }
@@ -26,7 +24,7 @@ struct DeepSeekModel {
 }
 
 impl DeepSeekModel {
-    fn new(config: &LlmConfig) -> Result<Self, Box<dyn Error + Send + Sync>> {
+    fn new(config: &LlmConfig) -> Result<Self, ModelError> {
         let api_key = env::var("DEEPSEEK_API_KEY")
             .map_err(|_| "set DEEPSEEK_API_KEY before calling DeepSeek")?;
         if api_key.trim().is_empty() {
@@ -44,18 +42,11 @@ impl DeepSeekModel {
 
 #[async_trait]
 impl AgentModel for DeepSeekModel {
-    async fn complete(&self, prompt: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
-        let response = tokio::time::timeout(
-            Duration::from_secs(60),
-            self.model.call(CompletionRequest::new(prompt)),
-        )
-        .await
-        .map_err(|_| "DeepSeek request timed out after 60 seconds")??;
-
-        let text = response.text();
-        if text.trim().is_empty() {
-            return Err("DeepSeek returned no text".into());
+    async fn complete(&self, request: CompletionRequest) -> Result<CompletionResponse, ModelError> {
+        let response = self.model.call(request).await?;
+        if let Some(error) = &response.error {
+            return Err(format!("DeepSeek completion failed: {error}").into());
         }
-        Ok(text)
+        Ok(response)
     }
 }

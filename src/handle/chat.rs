@@ -8,7 +8,7 @@ pub(crate) async fn reply(
     State(state): State<AppState>,
     body: String,
 ) -> Result<String, (StatusCode, &'static str)> {
-    chat::reply(state.agent_model.as_deref(), &body)
+    chat::reply(state.chat_agent.as_deref(), &body)
         .await
         .map_err(|error| match error {
             ChatError::EmptyPrompt => (StatusCode::BAD_REQUEST, "请输入问题。"),

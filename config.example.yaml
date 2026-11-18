@@ -1,5 +1,9 @@
 bind_addr: "127.0.0.1:3210"
 
+# QQ/远程访问 Excel 下载链接时，填用户能访问的 Nginx 根地址。
+# 未配置时返回 /ui/ 开头的相对下载路径。
+# public_base_url: "https://aice.example.com"
+
 # 使用 DeepSeek 时取消注释，并在环境变量中设置 DEEPSEEK_API_KEY。
 # llm:
 #   provider: deepseek
