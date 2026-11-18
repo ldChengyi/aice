@@ -1,3 +1,5 @@
+//! 人物卡核心入口：模板注册、公共类型及 CoC7 精简版 Excel 读取。
+
 use calamine::{Data, Range, Reader, Xlsx};
 use serde::Serialize;
 use std::{collections::BTreeMap, io::Cursor};
@@ -73,8 +75,8 @@ pub struct Skill {
     pub extreme: Option<u32>,
 }
 
-/// Reads the saved values of the project's CoC 7 simplified XLSX template.
-/// Formulas are not recalculated; empty cells remain None rather than becoming zero.
+/// 读取项目所用 CoC7 精简版 XLSX 模板中已保存的值。
+/// 不重新计算公式；空单元格保留为 None，避免混淆未填写和数值零。
 pub fn read_xlsx(bytes: &[u8]) -> Result<CharacterCard, String> {
     let mut workbook = Xlsx::new(Cursor::new(bytes))
         .map_err(|_| "无法读取 Excel，请使用有效的 .xlsx 文件。".to_owned())?;
@@ -84,8 +86,9 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<CharacterCard, String> {
     parse_sheet(&sheet)
 }
 
+/// 校验关键标签后按固定布局读取；空白数值保留为 None，公式读取已保存的缓存。
 fn parse_sheet(sheet: &Range<Data>) -> Result<CharacterCard, String> {
-    // shortcut: fixed cells support the supplied simplified template; add mappings when supporting other layouts.
+    // 当前固定单元格仅适用于随项目提供的精简版模板；支持其他版式时需补充映射。
     for (cell, expected) in [
         ("B3", "姓名"),
         ("B5", "职业"),
@@ -173,6 +176,7 @@ fn parse_sheet(sheet: &Range<Data>) -> Result<CharacterCard, String> {
     })
 }
 
+/// 将内部生成的 A1 地址转换为零基索引；调用方必须提供合法地址，缺失单元格按空值处理。
 fn value<'a>(sheet: &'a Range<Data>, cell: &str) -> &'a Data {
     let split = cell.find(|c: char| c.is_ascii_digit()).unwrap();
     let column = cell[..split]
@@ -193,6 +197,7 @@ fn text(sheet: &Range<Data>, cell: &str) -> Result<String, String> {
     }
 }
 
+/// 接受整数、无小数部分的浮点数及数字文本；拒绝负数、非有限值和超出 u32 的值。
 fn number(sheet: &Range<Data>, cell: &str) -> Result<Option<u32>, String> {
     let data = value(sheet, cell);
     if matches!(data, Data::Empty) || matches!(data, Data::String(s) if s.trim().is_empty()) {

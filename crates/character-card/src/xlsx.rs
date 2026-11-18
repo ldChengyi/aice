@@ -1,4 +1,5 @@
-//! Edit input cells while preserving the original XLSX package and formulas.
+//! 直接改写 XLSX 内的输入单元格，保留模板样式、附件和公式。
+
 use quick_xml::{
     Reader, Writer,
     events::{BytesEnd, BytesStart, BytesText, Event},
@@ -28,6 +29,7 @@ pub struct CellEdit<'a> {
     pub value: &'a CellValue,
 }
 
+/// 改写相关 XML 并原样复制其他 ZIP 条目；目标单元格缺失或试图覆盖公式时返回错误。
 pub fn export(template: &[u8], edits: &[CellEdit<'_>]) -> Result<Vec<u8>> {
     if edits.is_empty() {
         return Ok(template.to_vec());
@@ -84,6 +86,7 @@ fn without_attributes<'a>(start: &BytesStart<'a>, keys: &[&str]) -> Result<Bytes
     Ok(result)
 }
 
+/// 保留单元格地址和样式，按值类型重写内容；文本用内联字符串避免修改共享字符串表。
 fn write_input(
     writer: &mut Writer<Vec<u8>>,
     start: &BytesStart<'_>,
@@ -116,6 +119,7 @@ fn write_input(
     Ok(())
 }
 
+/// 逐单元格处理 XML：替换输入值、拒绝覆盖公式，并清除所有公式的旧计算缓存。
 fn rewrite_sheet(
     xml: &str,
     edits: &BTreeMap<&str, &CellValue>,
@@ -157,7 +161,7 @@ fn rewrite_sheet(
                     write_input(&mut writer, start, value)?;
                     applied(&address);
                 } else if formula {
-                    // Excel/WPS recalculates on open. Never keep cached results from old inputs.
+                    // 清除旧输入对应的公式缓存，等待 Excel/WPS 打开文件后重新计算。
                     writer.write_event(Event::Start(without_attributes(start, &["t"])?))?;
                     let mut skip = false;
                     for child in contents {
@@ -195,6 +199,7 @@ fn rewrite_sheet(
     Ok(writer.into_inner())
 }
 
+/// 更新或补充工作簿计算设置，让 Excel/WPS 打开时重算；后端自身不执行公式。
 fn recalculate_on_open(xml: &str) -> Result<Vec<u8>> {
     let mut reader = Reader::from_str(xml);
     let mut writer = Writer::new(Vec::new());
@@ -234,6 +239,7 @@ fn recalculate_on_open(xml: &str) -> Result<Vec<u8>> {
     Ok(writer.into_inner())
 }
 
+/// 为新标签沿用原标签的命名空间前缀，兼容带前缀的工作簿 XML。
 fn qualified_name(parent: &str, local: &str) -> String {
     match parent.split_once(':') {
         Some((prefix, _)) => format!("{prefix}:{local}"),
@@ -241,10 +247,11 @@ fn qualified_name(parent: &str, local: &str) -> String {
     }
 }
 
+/// 转义字面量 _xHHHH_ 和回车，避免 Excel 再次解码时改变用户原始文本。
 fn escape_excel_text(text: &str) -> String {
     let mut escaped = String::with_capacity(text.len());
     for (index, ch) in text.char_indices() {
-        // Excel decodes _xHHHH_ after XML decoding; escape literal sequences first.
+        // Excel 会在 XML 解码后解析 _xHHHH_，因此先转义文本中原样出现的同形序列。
         if ch == '_'
             && text.as_bytes().get(index..index + 7).is_some_and(|part| {
                 part[1] == b'x' && part[6] == b'_' && part[2..6].iter().all(u8::is_ascii_hexdigit)

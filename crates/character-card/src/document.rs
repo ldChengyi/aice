@@ -1,3 +1,5 @@
+//! 统一的人物卡创建、字段校验、修改和 Excel 导出接口。
+
 use super::CardTemplate;
 use crate::xlsx::{self, CellEdit, CellValue};
 use schemars::JsonSchema;
@@ -24,17 +26,21 @@ pub struct CardField {
     pub cell: String,
 }
 
-/// Common lifecycle for character cards. Updates are atomic and never modify the template.
+/// 统一的人物卡生命周期；整批修改先校验再应用，不改写原始模板。
 pub trait CharacterCardDocument: Send + Sync {
+    /// 根据模板创建独立实例；字段 ID 或单元格位置重复时返回错误。
     fn create(template: &'static CardTemplate) -> Result<Self, String>
     where
         Self: Sized;
+    /// 借用可编辑字段列表；返回切片，不复制映射。
     fn fields(&self) -> &[CardField];
+    /// 先校验整批修改，再覆盖同名字段；未传字段保留，空值清空。
     fn update(&mut self, changes: &CardChanges) -> Result<(), String>;
+    /// 将当前修改写入模板副本，返回 Excel 字节，不修改原模板。
     fn export(&self) -> Result<Vec<u8>, String>;
 }
 
-/// Shared XLSX implementation; a template supplies only its editable field mapping.
+/// 通用 Excel 人物卡实现，由模板提供可编辑字段与单元格的映射。
 pub struct ExcelCharacterCard {
     template: &'static CardTemplate,
     fields: Vec<CardField>,
@@ -70,12 +76,13 @@ impl CharacterCardDocument for ExcelCharacterCard {
                 .find(|field| field.id == *id)
                 .ok_or_else(|| format!("未知或不可修改的人物卡字段：{id}"))?;
             match (field.kind, value) {
-                (_, CellValue::Empty) | (FieldKind::Integer, CellValue::Integer(_)) => {},
+                (_, CellValue::Empty) | (FieldKind::Integer, CellValue::Integer(_)) => {}
                 (FieldKind::Text, CellValue::Text(text)) => {
+                    // Excel 按 UTF-16 码元限制文本长度，同时拒绝 XML 不允许的字符。
                     if text.encode_utf16().count() > 32767 || text.chars().any(|c| !matches!(c, '\t' | '\n' | '\r' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}')) {
                         return Err(format!("字段 {id} 超过 Excel 文本长度限制或含无效字符。"));
                     }
-                },
+                }
                 _ => return Err(format!("字段 {id} 的类型不正确。")),
             }
         }

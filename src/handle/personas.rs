@@ -1,3 +1,5 @@
+//! 人设预览页面及内嵌 CSS 的 HTTP 响应。
+
 use crate::frontend::{PERSONAS_CSS, pages::personas};
 use axum::{http::header, response::Html};
 

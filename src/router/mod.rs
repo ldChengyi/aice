@@ -1,3 +1,5 @@
+//! 集中注册 HTTP 路由，并注入应用共享状态。
+
 use crate::{handle, init::AppState};
 use axum::{
     Router,
@@ -5,7 +7,9 @@ use axum::{
     routing::{get, post},
 };
 
+/// 组装 API 和页面路由；页面与下载同时保留根路径及 /ui 前缀入口。
 pub fn build(state: AppState) -> Router {
+    // /ui 路由组与 Nginx 的公开转发范围对应，包含页面、样式和导出下载。
     let frontend = Router::new()
         .route(
             "/character-cards/exports/{id}",

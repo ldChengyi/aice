@@ -1,3 +1,5 @@
+//! 历史 CoC7 字段映射，当前使用 crates/character-card 中的实现。
+
 use super::{
     document::{CardField, FieldKind},
     read_xlsx,
@@ -65,7 +67,7 @@ pub(super) fn fields(bytes: &[u8]) -> Result<Vec<CardField>, String> {
             cell.into(),
         );
     }
-    // This template has 34 left-hand skills followed by 32 right-hand skills.
+    // 模板技能按左侧 34 项、右侧 32 项的顺序读取，并据此计算所在行列。
     for (index, skill) in card.skills.iter().enumerate() {
         let left = index < 34;
         let row = if left { index + 16 } else { index - 34 + 16 };

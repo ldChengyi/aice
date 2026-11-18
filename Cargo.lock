@@ -21,6 +21,7 @@ dependencies = [
  "character-card-mcp",
  "leptos",
  "qqbot-sdk-rs",
+ "quick-xml",
  "rig-core",
  "rmcp",
  "serde",

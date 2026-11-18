@@ -1,10 +1,14 @@
+//! 用 Leptos 服务端渲染示例人设；折叠交互由原生 HTML 实现。
+
 use leptos::prelude::*;
 
+/// 生成带 HTML5 文档声明的完整页面字符串。
 pub(crate) fn render() -> String {
     let page = view! { <PersonaList /> };
     format!("<!doctype html>{}", page.to_html())
 }
 
+/// 展示固定的示例人设列表，当前不从数据库读取。
 #[component]
 fn PersonaList() -> impl IntoView {
     view! {
@@ -62,6 +66,7 @@ fn PersonaList() -> impl IntoView {
     }
 }
 
+/// 用 details/summary 展开人设指令，无需客户端 JavaScript。
 #[component]
 fn PersonaCard(
     name: &'static str,

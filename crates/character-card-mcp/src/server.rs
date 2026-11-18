@@ -1,3 +1,5 @@
+//! MCP 工具定义、参数和结果 schema，以及异步任务调度。
+
 use crate::{CardExports, ExportResult};
 use character_card::{CardChanges, CardField, CardTemplate, CharacterCardDocument, TEMPLATES};
 use rmcp::{
@@ -14,20 +16,20 @@ use std::sync::Arc;
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct TemplateInput {
-    /// Template ID from character_card_list_templates, currently coc7.
+    /// 从 character_card_list_templates 获取的模板 ID，目前为 coc7。
     template_id: String,
 }
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 struct ExportInput {
-    /// Omit for the default coc7 template. When modifying a card, retain its template.
+    /// 省略时使用默认 coc7 模板；修改已有卡时必须保留原模板。
     template_id: Option<String>,
-    /// Omit to create a new card. Supply a previous export's ID to apply a patch to it.
+    /// 省略时创建新卡；传入上次导出的 ID 时，在该卡的已有数据上应用修改。
     card_id: Option<String>,
-    /// Field IDs or Chinese labels mapped to text, non-negative integers, or null to clear.
-    /// Example: {"力量":55,"敏捷":25,"意志":70,"体质":50,"外貌":50,"教育":55,"体型":60,"智力":75,"幸运":75,"HP":11}.
-    /// DB and [440/515] are derived summaries, not writable fields. Skill totals are not allocations.
+    /// 以字段 ID 或中文标签为键；值为文本、非负整数，或用于清空的 null。
+    /// 示例：{"力量":55,"敏捷":25,"意志":70,"体质":50,"外貌":50,"教育":55,"体型":60,"智力":75,"幸运":75,"HP":11}.
+    /// DB 和 [440/515] 为派生汇总，不是可写字段；技能总值不等于可分配的加点。
     changes: CardChanges,
 }
 
@@ -80,6 +82,7 @@ impl CharacterCardMcp {
                 "未找到该人物卡模版，请调用 character_card_list_templates 获取有效 ID。",
             )]));
         };
+        // 许可移入阻塞任务并随任务释放，使并发限制覆盖实际 Excel 处理过程。
         let permit = self
             .exports
             .workers
@@ -132,6 +135,7 @@ impl CharacterCardMcp {
     }
 }
 
+/// 底层任务错误只记录到日志，对 MCP 调用方返回统一的内部错误提示。
 fn task_error(error: tokio::task::JoinError) -> ErrorData {
     eprintln!("character card MCP task failed: {error}");
     ErrorData::internal_error("人物卡处理失败，请稍后重试", None)

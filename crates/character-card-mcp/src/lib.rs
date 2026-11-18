@@ -1,4 +1,4 @@
-//! Character card MCP tools and temporary export storage, independent of HTTP and model providers.
+//! 人物卡 MCP 工具与临时导出存储，不依赖 HTTP 框架或模型供应商。
 
 mod exports;
 mod server;

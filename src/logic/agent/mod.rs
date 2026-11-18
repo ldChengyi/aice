@@ -1,3 +1,5 @@
+//! 人物卡 Agent：建立进程内 MCP 连接，执行模型与工具循环，汇总真实导出结果。
+
 use crate::service::agent::{AgentModel, ModelError};
 use character_card_mcp::{CardExports, CharacterCardMcp, EXPORT_TOOL_NAME, ExportResult};
 use rig_core::{
@@ -22,8 +24,9 @@ impl ChatAgent {
         Self { model, exports }
     }
 
+    /// 执行限时聊天；后续步骤失败时仍返回已完成的导出，并提示部分操作未完成。
     pub async fn reply(&self, prompt: &str) -> Result<String, ModelError> {
-        // Keep completed artifacts even when a later call fails or times out.
+        // 在后续调用失败或超时时，仍保留已经收到的成功导出结果。
         let mut artifacts = Vec::new();
         let outcome = tokio::time::timeout(TIMEOUT, self.run(prompt, &mut artifacts))
             .await
@@ -54,14 +57,16 @@ impl ChatAgent {
         Ok(reply)
     }
 
+    /// 为单次聊天建立 MCP 连接，保留工具调用 ID 和原始消息，并限制轮数及调用次数。
     async fn run(
         &self,
         prompt: &str,
         artifacts: &mut Vec<ExportResult>,
     ) -> Result<String, ModelError> {
-        // Dropping these running services cancels both ends, including on timeout.
+        // 连接句柄离开作用域时取消两端服务；超时取消也会触发此清理。
         let (server_io, client_io) = tokio::io::duplex(64 * 1024);
         let server = CharacterCardMcp::new(self.exports.clone());
+        // try_join! 同时推进两端初始化，避免一端等待握手时另一端尚未启动。
         let (_server, client) = tokio::try_join!(
             async {
                 server
@@ -141,7 +146,7 @@ impl ChatAgent {
                     result.to_string(),
                 )));
             }
-            // Finish the entire batch before returning links from actual exports.
+            // 先完成同一轮的全部工具调用，再返回实际导出文件的链接。
             if !artifacts.is_empty() {
                 return if failed {
                     Err("同轮部分工具调用失败".into())

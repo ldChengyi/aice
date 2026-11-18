@@ -1,3 +1,5 @@
+//! 历史人物卡读取实现，当前模块树使用 character-card 包的重导出。
+
 use calamine::{Data, Range, Reader, Xlsx};
 use serde::Serialize;
 use std::{collections::BTreeMap, io::Cursor};
@@ -75,8 +77,8 @@ pub struct Skill {
     pub extreme: Option<u32>,
 }
 
-/// Reads the saved values of the project's CoC 7 simplified XLSX template.
-/// Formulas are not recalculated; empty cells remain None rather than becoming zero.
+/// 读取项目所用 CoC7 精简版 XLSX 模板中已保存的值。
+/// 不重新计算公式；空单元格保留为 None，避免混淆未填写和数值零。
 pub fn read_xlsx(bytes: &[u8]) -> Result<CharacterCard, String> {
     let mut workbook = Xlsx::new(Cursor::new(bytes))
         .map_err(|_| "无法读取 Excel，请使用有效的 .xlsx 文件。".to_owned())?;
@@ -87,7 +89,7 @@ pub fn read_xlsx(bytes: &[u8]) -> Result<CharacterCard, String> {
 }
 
 fn parse_sheet(sheet: &Range<Data>) -> Result<CharacterCard, String> {
-    // shortcut: fixed cells support the supplied simplified template; add mappings when supporting other layouts.
+    // 当前固定单元格仅适用于随项目提供的精简版模板；支持其他版式时需补充映射。
     for (cell, expected) in [
         ("B3", "姓名"),
         ("B5", "职业"),

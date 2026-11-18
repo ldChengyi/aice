@@ -43,6 +43,7 @@ async-trait.workspace = true
 axum.workspace = true
 leptos.workspace = true
 qqbot-sdk-rs.workspace = true
+quick-xml.workspace = true
 rig-core.workspace = true
 rmcp = { workspace = true, features = ["client", "server"] }
 serde.workspace = true

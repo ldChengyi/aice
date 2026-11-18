@@ -11,6 +11,7 @@
   command.name = 'aicechat';
   command.help = '.aicechat <问题>  向 Aice 提问';
 
+  // 向配置的后端发送原始文本；async/await 等待网络响应后再回复当前会话。
   async function chat(ctx, msg, body) {
     try {
       const url = seal.ext.getStringConfig(ext, 'chat_url');

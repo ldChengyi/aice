@@ -1,3 +1,5 @@
+//! 人物卡快照暂存、字段别名归一化及修改后重新导出。
+
 use bytes::Bytes;
 use character_card::{CardChanges, CharacterCardDocument, TEMPLATES};
 use schemars::JsonSchema;
@@ -20,7 +22,7 @@ struct SavedCard {
     created: Instant,
 }
 
-/// Temporary downloadable cards. IDs identify immutable exports, not users.
+/// 可下载人物卡的临时存储；ID 对应不可变的导出快照，不代表用户身份。
 pub struct CardExports {
     cards: Mutex<BTreeMap<String, SavedCard>>,
     pub(crate) workers: std::sync::Arc<Semaphore>,
@@ -37,6 +39,7 @@ pub struct ExportResult {
 }
 
 impl CardExports {
+    /// 创建内存存储；根地址为空时返回相对链接，非空地址应由宿主提前校验。
     pub fn new(public_base_url: String) -> Self {
         Self {
             cards: Mutex::new(BTreeMap::new()),
@@ -45,12 +48,14 @@ impl CardExports {
         }
     }
 
+    /// 清理过期记录后读取文件；不存在时返回 None，Bytes 克隆共享底层缓冲区。
     pub fn download(&self, id: &str) -> Result<Option<Bytes>, String> {
         let mut cards = self.cards.lock().map_err(|_| "人物卡暂存不可用")?;
         cards.retain(|_, card| card.created.elapsed() < EXPORT_TTL);
         Ok(cards.get(id).map(|card| card.bytes.clone()))
     }
 
+    /// 归一化字段别名并合并已有修改，导出为新快照；旧 ID 的文件保持不变。
     pub(crate) fn export(
         &self,
         template_id: Option<String>,
@@ -76,6 +81,7 @@ impl CardExports {
                 CardChanges::new(),
             )
         };
+        // 离开上面的锁作用域后再处理 Excel，避免耗时操作阻塞其他下载。
         let template = TEMPLATES
             .iter()
             .find(|template| template.id == template_id)
@@ -101,6 +107,7 @@ impl CardExports {
             let field = card.fields().iter()
                 .find(|field| field.id == alias || field.label == alias)
                 .ok_or_else(|| format!("未知或不可写字段：{key}；请先查询可编辑字段。DB、属性总和与技能总值不能直接写入。"))?;
+            // 中文名与英文别名可能指向同一字段；拒绝重复，避免静默覆盖输入。
             if normalized.insert(field.id.clone(), value).is_some() {
                 return Err(format!("字段重复：{key}，请只提供一种字段名称"));
             }

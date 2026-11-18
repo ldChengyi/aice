@@ -1,7 +1,10 @@
+//! 命令行文本补全示例；不连接 MCP，不创建可下载的人物卡。
+
 use aice::{config::Config, infra::llm};
 use rig_core::completion::CompletionRequest;
 use std::{env, error::Error, time::Duration};
 
+/// 将命令行参数作为问题提交给模型，最多等待 120 秒后输出回复。
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let prompt = env::args().skip(1).collect::<Vec<_>>().join(" ");

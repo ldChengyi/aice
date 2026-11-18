@@ -1,4 +1,4 @@
-//! Shared modules for the Aice HTTP service and its executable targets.
+//! Aice 应用公共入口，连接配置、HTTP 接口、业务编排和外部服务。
 
 pub mod config;
 pub mod dal;

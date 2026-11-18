@@ -1,3 +1,5 @@
+//! 人物卡 HTTP 接口：列出模板、读取字段、直接导出及下载 MCP 暂存文件。
+
 use crate::service::character_card::{
     CardChanges, CardField, CardTemplate, CharacterCard, CharacterCardDocument, TEMPLATES,
 };
@@ -8,10 +10,12 @@ use axum::{
     response::{IntoResponse, Response},
 };
 
+/// 返回内置模板的 ID 和名称，文件字节不参与 JSON 序列化。
 pub(crate) async fn templates() -> Json<&'static [CardTemplate]> {
     Json(TEMPLATES)
 }
 
+/// 按导出 ID 下载文件；不存在或过期返回 404，并禁止响应缓存。
 pub(crate) async fn download(
     State(state): State<crate::init::AppState>,
     Path(id): Path<String>,
@@ -45,6 +49,7 @@ pub(crate) async fn default_card() -> Result<Json<CharacterCard>, (StatusCode, S
     read(&TEMPLATES[0]).await
 }
 
+/// 按模板 ID 读取已保存的单元格值，不执行 Excel 公式。
 pub(crate) async fn template_card(
     Path(id): Path<String>,
 ) -> Result<Json<CharacterCard>, (StatusCode, String)> {
@@ -55,6 +60,7 @@ pub(crate) async fn template_card(
     read(template).await
 }
 
+/// 返回模板允许修改的字段，供调用方生成合法的修改集合。
 pub(crate) async fn fields(
     Path(id): Path<String>,
 ) -> Result<Json<Vec<CardField>>, (StatusCode, String)> {
@@ -69,7 +75,7 @@ pub(crate) async fn fields(
         .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error))
 }
 
-/// Create an independent card, apply a field patch, and return its Excel file.
+/// 从模板新建独立人物卡，应用字段修改并直接返回 Excel；不加入 MCP 暂存。
 pub(crate) async fn export(
     Path(id): Path<String>,
     Json(changes): Json<CardChanges>,
@@ -78,6 +84,7 @@ pub(crate) async fn export(
         .iter()
         .find(|template| template.id == id)
         .ok_or((StatusCode::NOT_FOUND, "未找到该人物卡模版。".into()))?;
+    // 解压和改写 Excel 属于阻塞工作，交给阻塞线程池处理。
     let bytes = tokio::task::spawn_blocking(move || {
         let mut card = template
             .create()
@@ -105,6 +112,7 @@ pub(crate) async fn export(
         .into_response())
 }
 
+/// 在线程池读取模板，避免同步解析 Excel 占用异步执行线程。
 async fn read(
     template: &'static CardTemplate,
 ) -> Result<Json<CharacterCard>, (StatusCode, String)> {

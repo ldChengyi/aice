@@ -1,8 +1,11 @@
+//! CoC7 精简版的可编辑字段映射；公式计算单元格不开放写入。
+
 use super::{
     document::{CardField, FieldKind},
     read_xlsx,
 };
 
+/// 依据模板技能顺序生成可写字段；仅映射输入单元格，不暴露技能总值等公式结果。
 pub(super) fn fields(bytes: &[u8]) -> Result<Vec<CardField>, String> {
     let card = read_xlsx(bytes)?;
     if card.skills.len() != 66 {
@@ -65,7 +68,7 @@ pub(super) fn fields(bytes: &[u8]) -> Result<Vec<CardField>, String> {
             cell.into(),
         );
     }
-    // This template has 34 left-hand skills followed by 32 right-hand skills.
+    // 模板技能按左侧 34 项、右侧 32 项的顺序读取，并据此计算所在行列。
     for (index, skill) in card.skills.iter().enumerate() {
         let left = index < 34;
         let row = if left { index + 16 } else { index - 34 + 16 };
@@ -82,6 +85,7 @@ pub(super) fn fields(bytes: &[u8]) -> Result<Vec<CardField>, String> {
                 ("interest", "兴趣", "AL"),
             ]
         } {
+            // 此处职业加点由模板公式计算，不可作为普通输入覆盖。
             if left && row == 27 && key == "occupation" {
                 continue;
             }

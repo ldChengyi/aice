@@ -37,6 +37,7 @@ h1 { margin: 0 0 12px; font-size: clamp(28px, 5vw, 40px); letter-spacing: -.045e
 
 .list { display: grid; gap: 12px; }
 .persona { background: white; border: 1px solid #e8e3ef; border-radius: 14px; }
+/* 原生 details/summary 负责展开交互，网格将头像、身份、简介和入口对齐。 */
 .persona summary {
     display: grid;
     grid-template-columns: 48px minmax(110px, 1fr) minmax(0, 2.6fr) auto;
@@ -72,6 +73,7 @@ summary:focus-visible { outline: 2px solid #5c3cb2; outline-offset: 2px; }
 [open] .chevron { transform: rotate(225deg); }
 .instructions { margin: 0 20px; padding: 16px 0 18px; border-top: 1px solid #ece8f1; }
 
+/* 窄屏将简介移到第二行，避免姓名和展开入口被挤压。 */
 @media (max-width: 640px) {
     .container { width: calc(100% - 32px); }
     main { padding-block: 36px; }

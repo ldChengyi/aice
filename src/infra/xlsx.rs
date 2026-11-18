@@ -1,4 +1,5 @@
-//! Edit input cells while preserving the original XLSX package and formulas.
+//! 保留的 XLSX 基础实现；独立人物卡核心包使用 crates/character-card/src/xlsx.rs。
+
 use quick_xml::{
     Reader, Writer,
     events::{BytesEnd, BytesStart, BytesText, Event},
@@ -156,7 +157,7 @@ fn rewrite_sheet(
                     write_input(&mut writer, start, value)?;
                     applied(&address);
                 } else if formula {
-                    // Excel/WPS recalculates on open. Never keep cached results from old inputs.
+                    // 清除旧输入对应的公式缓存，等待 Excel/WPS 打开文件后重新计算。
                     writer.write_event(Event::Start(without_attributes(start, &["t"])?))?;
                     let mut skip = false;
                     for child in contents {

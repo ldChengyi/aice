@@ -1,3 +1,5 @@
+//! 历史人物卡文档实现，当前使用 crates/character-card 中的实现。
+
 use super::CardTemplate;
 use crate::infra::xlsx::{self, CellEdit, CellValue};
 use serde::{Deserialize, Serialize};
@@ -23,7 +25,7 @@ pub struct CardField {
     pub cell: String,
 }
 
-/// Common lifecycle for character cards. Updates are atomic and never modify the template.
+/// 统一的人物卡生命周期；整批修改先校验再应用，不改写原始模板。
 pub trait CharacterCardDocument: Send + Sync {
     fn create(template: &'static CardTemplate) -> Result<Self, String>
     where
@@ -33,7 +35,7 @@ pub trait CharacterCardDocument: Send + Sync {
     fn export(&self) -> Result<Vec<u8>, String>;
 }
 
-/// Shared XLSX implementation; a template supplies only its editable field mapping.
+/// 通用 Excel 人物卡实现，由模板提供可编辑字段与单元格的映射。
 pub struct ExcelCharacterCard {
     template: &'static CardTemplate,
     fields: Vec<CardField>,
