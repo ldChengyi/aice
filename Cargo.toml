@@ -50,3 +50,4 @@ serde_json.workspace = true
 serde_yaml_ng.workspace = true
 sqlx.workspace = true
 tokio = { workspace = true, features = ["io-util", "macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+zip = { version = "9.6", default-features = false, features = ["deflate"] }

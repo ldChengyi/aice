@@ -28,6 +28,7 @@ dependencies = [
  "serde_yaml_ng",
  "sqlx",
  "tokio",
+ "zip",
 ]
 
 [[package]]
