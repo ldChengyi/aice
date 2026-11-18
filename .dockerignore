@@ -3,3 +3,5 @@
 !Cargo.lock
 !src/
 !src/**
+!character-card-templates/
+!character-card-templates/**

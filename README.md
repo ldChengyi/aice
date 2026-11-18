@@ -48,6 +48,66 @@ curl -fsS http://127.0.0.1:3210/healthz
 AICE_CARGO_MIRROR= docker compose up -d --build
 ```
 
+## 内置人物卡模版
+
+默认数据来自 `character-card-templates/coc7-character-card-template.xlsx`，已恢复为空白建卡模板：姓名、玩家、职业、年龄、性别、属性、当前生命/理智/魔法值、技能加点和背景等角色数据已清空，技能保留基础值，时代等模板设置保留默认值。文件在编译时嵌入程序，并已纳入 Docker 构建。替换这份文件后需要重新编译或构建镜像。
+
+人物卡通过选择内置模版读取，无需上传文件。将 `character-card-templates` 目录随项目提交到 GitHub 即可。
+
+`GET /character-cards/templates` 返回可选模版列表，目前包含 `{"id":"coc7","name":"CoC 7 Character Card"}`。选择其中的 `id` 后调用读取接口：
+
+```sh
+curl -fsS http://127.0.0.1:3210/character-cards/templates
+curl -fsS http://127.0.0.1:3210/character-cards/templates/coc7
+```
+
+`GET /character-cards/default` 保留为默认选项的快捷读取接口，返回同样的人物卡 JSON：
+
+```sh
+curl -fsS http://127.0.0.1:3210/character-cards/default
+```
+
+目前支持 `character-card-templates` 目录中这份「COC 七版半自动人物卡 - 精简版」的版式，读取 `人物卡` 工作表中的基本资料、九项属性、当前/最大生命值与魔法值、理智、移动力、两列技能（含子技能和普通/困难/极难值）以及背景故事。返回字段包括 `name`、`attributes`、`hit_points`、`sanity`、`magic_points`、`skills` 和 `background`；数值空格返回 `null`，已填的 0 保留为 0。
+
+公式使用文件中已保存的计算结果，不会重新计算；修改模版后，请先用 Excel/WPS 计算并保存，再重新编译。接口只读取并返回结果，不写入数据库；不存在的模版 ID 返回 HTTP 404，内置模版读取失败返回 HTTP 500。当前不支持旧版 `.xls` 或其他布局的 Excel，原文件上传接口已移除。
+
+添加同版式模版时，将文件放入 `character-card-templates`，并在 `src/service/character_card.rs` 的 `TEMPLATES` 中注册唯一 ID、名称、文件及 `field_mapping`；列表第一项为默认选项。
+
+其他 Rust 调用方也可以直接使用 `aice::service::character_card::read_xlsx(&bytes)`；读取内置默认卡使用 `aice::service::character_card::read_default()`。
+
+### 创建、修改和导出人物卡
+
+`CharacterCardDocument` trait 统一提供 `create`、`fields`、`update`、`export`。`ExcelCharacterCard` 是共用的 Excel 实现；每次创建独立人物卡，更新只作用于该实例，导出为 `.xlsx` 字节，不修改内置模板。
+
+```rust
+use aice::service::character_card::{CardChanges, CellValue, CharacterCardDocument, TEMPLATES};
+
+let mut card = TEMPLATES[0].create()?;
+card.update(&CardChanges::from([
+    ("name".into(), CellValue::Text("林秋".into())),
+    ("attributes.DEX".into(), CellValue::Integer(80)),
+    ("skills.侦查.occupation".into(), CellValue::Integer(45)),
+    ("background.背景故事".into(), CellValue::Text("一位寻找失踪朋友的记者。".into())),
+]))?;
+let xlsx = card.export()?;
+```
+
+HTTP 调用先通过 `GET /character-cards/templates/{id}/fields` 获取可编辑字段（`id`、`label`、`kind`），再将字段 ID 与值组成 JSON，提交到 `POST /character-cards/templates/{id}/export`，响应是可下载的 Excel 文件。
+
+```sh
+curl -fsS http://127.0.0.1:3210/character-cards/templates/coc7/fields
+curl -fsS -H 'Content-Type: application/json' \
+  -d '{"name":"林秋","attributes.DEX":80,"skills.侦查.occupation":45,"background.背景故事":"一位寻找失踪朋友的记者。"}' \
+  http://127.0.0.1:3210/character-cards/templates/coc7/export \
+  -o investigator.xlsx
+```
+
+空对象 `{}` 创建并下载空白人物卡。未传的字段保持当前值；`null` 清空字段；数值字段只接受非负整数。`update` 可以多次调用，未知字段、错误类型或无效文本会使整批修改失败。技能通过 `growth`（成长）、`occupation`（职业）、`interest`（兴趣）加点，子技能使用 `specialization`；总值、困难和极难值由模板公式计算，不能直接覆盖。HTTP 导出每次从模板新建，不保存人物卡；多次修改同一张卡可在 Rust 中复用实例，或在请求中提交完整修改集合。
+
+导出保留模板的样式、合并单元格、数据验证、批注、隐藏工作表及公式。修改输入后会清除所有旧的公式缓存，并设置打开时自动重新计算；请用 Excel/WPS 打开导出文件来更新计算结果。后端不执行 Excel 公式，直接读取尚未打开保存的导出文件时，公式结果为空。
+
+不同 Excel 布局可注册各自的字段映射（字段 ID、类型、工作表 XML 路径与已有的输入单元格），复用同一套创建、校验、修改、导出逻辑。非 Excel 实现可单独实现 `CharacterCardDocument`。规则特有的业务校验和现有 CoC 7 结构化读取适配仍需由相应卡种实现。
+
 ## 海豹聊天
 
 `POST /chat` 接收 UTF-8 文本，并返回模型生成的回复。每次请求是独立的一轮对话。
