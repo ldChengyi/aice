@@ -12,6 +12,23 @@ cargo run
 
 `llm` 是可选配置。要启用聊天，在 `config.yaml` 中启用示例的 `llm` 配置，并在启动服务前设置环境变量 `DEEPSEEK_API_KEY`。省略 `llm.provider` 时默认使用 `deepseek`。如果未启用 `llm`，聊天接口返回 HTTP 503。
 
+环境变量模板为 `.env.template`。首次使用时复制并填写，已有 `.env` 时保留原文件：
+
+```sh
+test -f .env || cp .env.template .env
+```
+
+Docker Compose 会自动读取 `.env`；`cargo run` 和二进制本身不会自动加载。直接运行时，先在同一终端导入，再启动服务：
+
+```sh
+set -a
+. ./.env
+set +a
+./target/release/aice
+```
+
+`.env` 已被 Git 忽略，模板可以提交。模型名称、API 地址和 `public_base_url` 仍在 `config.yaml` 中配置。
+
 也可以单独在终端试跑 DeepSeek。
 
 ```sh
@@ -34,6 +51,8 @@ Compose 默认只读挂载项目根目录的 `config.yaml`。首次部署时先�
 
 ```sh
 test -f config.yaml || cp config.example.yaml config.yaml
+test -f .env || cp .env.template .env
+# 启动前填写 .env 中的 AICE_POSTGRES_PASSWORD；启用聊天时同时填写 DEEPSEEK_API_KEY。
 docker compose up -d --build
 curl -fsS http://127.0.0.1:3210/healthz
 ```
