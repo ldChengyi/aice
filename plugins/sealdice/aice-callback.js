@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         呆猫 · Aice 聊天与人物卡
 // @author       Aice
-// @version      0.3.0
+// @version      0.3.1
 // @description  通过 Aice 聊天、创建或修改 CoC7 人物卡，返回 Excel 下载链接。
 // ==/UserScript==
 
 (() => {
-  const ext = seal.ext.new('aice-callback', 'Aice', '0.3.0');
+  const ext = seal.ext.new('aice-callback', 'Aice', '0.3.1');
 
   // 向配置的后端发送原始文本；async/await 等待网络响应后再回复当前会话。
   async function chat(ctx, msg, body) {
@@ -63,6 +63,8 @@
     '创建示例：.aicecard 力量55 敏捷25 意志70 体质50 外貌50 教育55 体型60 智力75 幸运75 HP11',
     '修改示例：.aicecard 把人物卡 <卡ID> 的力量改成60，其他字段保持不变。',
     '支持多行属性、技能加点和背景；技能请说明职业、兴趣或成长加点。',
+    '背景可填写：描述、思想信念、重要之人、重要之人理由、意义非凡之地、宝贵之物、特点。重要之人和理由合并保存。',
+    '粘贴的『序号…』职业资料段暂不录入，也不会据此自动加点。',
     '修改必须附带上次返回的卡ID；下载链接与ID一小时内有效，服务重启后失效。',
   ].join('\n'), '请根据以下用户要求创建或修改 CoC7 人物卡并导出 Excel。只填写明确给出的数据，修改已有卡必须使用用户提供的卡ID。\n\n');
 

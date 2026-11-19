@@ -30,6 +30,9 @@ struct ExportInput {
     /// 以字段 ID 或中文标签为键；值为文本、非负整数，或用于清空的 null。
     /// 示例：{"力量":55,"敏捷":25,"意志":70,"体质":50,"外貌":50,"教育":55,"体型":60,"智力":75,"幸运":75,"HP":11}.
     /// DB 和 [440/515] 为派生汇总，不是可写字段；技能总值不等于可分配的加点。
+    /// 背景也必须提交：描述对应 background.形象描述，思想信念对应 background.思想与信念，特点对应 background.特质。
+    /// 重要之人、意义非凡之地、宝贵之物、背景故事可用中文标签或 background. 加完整标签。
+    /// 重要之人理由不是独立字段，须合并到 background.重要之人，不添加“理由：”前缀，例如：父辈。\n你试图证明你比他们更出色。
     changes: CardChanges,
 }
 
@@ -66,7 +69,7 @@ impl CharacterCardMcp {
     }
 
     #[tool(
-        description = "查询人物卡可编辑字段的 ID、中文标签和类型。技能需区分职业、兴趣和成长加点；公式总值不可直接修改。",
+        description = "查询人物卡可编辑字段的 ID、中文标签和类型，包含属性和各背景栏目。重要之人及理由共用重要之人字段。技能需区分职业、兴趣和成长加点；公式总值不可直接修改。",
         output_schema = schema_for_output::<FieldsResult>(),
         annotations(read_only_hint = true, destructive_hint = false, idempotent_hint = true, open_world_hint = false)
     )]

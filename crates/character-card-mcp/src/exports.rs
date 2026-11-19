@@ -102,6 +102,13 @@ impl CardExports {
                 "POW" => "attributes.POW",
                 "EDU" => "attributes.EDU",
                 "LUK" => "attributes.LUK",
+                // 背景标题与模板标签不同，归一化后仍复用核心字段校验和写入。
+                "描述" | "background.描述" => "background.形象描述",
+                "思想信念" | "background.思想信念" => "background.思想与信念",
+                "特点" | "background.特点" => "background.特质",
+                "重要之人理由" | "background.重要之人理由" => {
+                    return Err("重要之人理由没有独立单元格，请将重要之人和理由合并为一段文本，写入 background.重要之人，例如：父辈。\\n你试图证明你比他们更出色。".into());
+                }
                 _ => &key,
             };
             let field = card.fields().iter()
