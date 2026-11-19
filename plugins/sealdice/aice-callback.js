@@ -1,12 +1,53 @@
 // ==UserScript==
 // @name         呆猫 · Aice 聊天与人物卡
 // @author       Aice
-// @version      0.3.1
-// @description  通过 Aice 聊天、创建或修改 CoC7 人物卡，返回 Excel 下载链接。
+// @version      0.4.0
+// @description  通过 Aice 创建或修改 CoC7 人物卡，保留下载链接，并由官方 QQ 机器人发送 Excel。
 // ==/UserScript==
 
 (() => {
-  const ext = seal.ext.new('aice-callback', 'Aice', '0.3.1');
+  const ext = seal.ext.new('aice-callback', 'Aice', '0.4.0');
+
+  // 后端文本只作为文本回复，避免模型内容被海豹解释成 CQ 文件或其他操作。
+  function escapeCqText(text) {
+    return text.replace(/&/g, '&amp;').replace(/\[/g, '&#91;').replace(/\]/g, '&#93;');
+  }
+
+  function sendExportFiles(ctx, msg, reply) {
+    // 官方 QQ 群聊和 C2C 私聊使用 OpenQQ；OneBot/NapCat、频道和未知平台均不发送文件。
+    if (msg.platform !== 'OpenQQ') return;
+
+    const exports = /^下载 Excel：([^\r\n]+)\r?\n人物卡 ID：([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\r?$/gm;
+    const sent = new Set();
+    let missingPublicUrl = false;
+    let match;
+    while ((match = exports.exec(reply)) !== null) {
+      const downloadUrl = match[1];
+      const cardId = match[2];
+      const exportPath = `/ui/character-cards/exports/${cardId}`;
+      if (sent.has(cardId)) continue;
+      if (downloadUrl === exportPath) {
+        missingPublicUrl = true;
+        continue;
+      }
+      // 只识别后端固定格式的导出链接，要求路径与卡 ID 对应，不解析普通聊天里的任意链接。
+      if (!/^https?:\/\/[^/?#@\s]+\/ui\/character-cards\/exports\/[0-9a-f-]+$/.test(downloadUrl)
+          || !downloadUrl.endsWith(exportPath)) continue;
+
+      sent.add(cardId);
+      try {
+        const fileUrl = escapeCqText(downloadUrl).replace(/,/g, '&#44;');
+        // 上传、鉴权和被动回复的消息 ID 交给海豹；JS 接口无送达回执，下载链接始终保留。
+        seal.replyToSender(ctx, msg, `[CQ:file,url=${fileUrl}]`);
+      } catch (error) {
+        console.error(`Aice Excel 文件发送失败（${cardId}）：${error}`);
+        seal.replyToSender(ctx, msg, 'Excel 文件发送失败，请使用上面的下载链接；管理员可查看海豹日志。');
+      }
+    }
+    if (missingPublicUrl) {
+      seal.replyToSender(ctx, msg, 'Excel 自动发送需要完整的公网下载地址，请管理员配置 Aice 的 public_base_url 后重新生成。');
+    }
+  }
 
   // 向配置的后端发送原始文本；async/await 等待网络响应后再回复当前会话。
   async function chat(ctx, msg, body) {
@@ -31,7 +72,8 @@
         return;
       }
       const reply = await response.text();
-      seal.replyToSender(ctx, msg, reply.trim() ? reply : 'Aice 未返回内容，请管理员查看后端日志。');
+      seal.replyToSender(ctx, msg, reply.trim() ? escapeCqText(reply) : 'Aice 未返回内容，请管理员查看后端日志。');
+      sendExportFiles(ctx, msg, reply);
     } catch (error) {
       console.error(`Aice 聊天请求失败：${error}`);
       seal.replyToSender(ctx, msg, '无法连接 Aice，请检查后端地址和服务状态。');
@@ -66,6 +108,7 @@
     '背景可填写：描述、思想信念、重要之人、重要之人理由、意义非凡之地、宝贵之物、特点。重要之人和理由合并保存。',
     '粘贴的『序号…』职业资料段暂不录入，也不会据此自动加点。',
     '修改必须附带上次返回的卡ID；下载链接与ID一小时内有效，服务重启后失效。',
+    '官方 QQ 群聊和私聊会额外发送 Excel 文件；NapCat/OneBot 等三方接入只回复下载链接。',
   ].join('\n'), '请根据以下用户要求创建或修改 CoC7 人物卡并导出 Excel。只填写明确给出的数据，修改已有卡必须使用用户提供的卡ID。\n\n');
 
   seal.ext.register(ext);

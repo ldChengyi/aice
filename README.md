@@ -208,7 +208,7 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 
 使用现有海豹机器人接入，插件沿用扩展 ID `aice-callback`，保留 `.aicechat` 并增加专用建卡指令 `.aicecard`。不需要单独部署 MCP，也不需要把模型密钥填入插件。
 
-1. 在海豹 WebUI 的「扩展功能 → JS 扩展」上传或替换 `plugins/sealdice/aice-callback.js`（0.3.1），然后重载 JS；替换旧文件，不要同时保留两份插件。
+1. 在海豹 WebUI 的「扩展功能 → JS 扩展」上传或替换 `plugins/sealdice/aice-callback.js`（0.4.0），然后重载 JS；替换旧文件，不要同时保留两份插件。
 2. 扩展配置 `chat_url` 保持 `http://aice:3210/chat`，用于同一 Docker 网络中的海豹访问 Aice。确认 Aice 接入了海豹实际使用的网络，必要时设置 `.env` 的 `SEALDICE_NETWORK`。两个服务都直接在同一宿主机运行时才使用 `http://127.0.0.1:3210/chat`；容器内的 `127.0.0.1` 指容器自己。
 3. 在后端 `config.yaml` 配置用户可访问的 `public_base_url`。默认 Nginx 只提供 HTTP，未配置 TLS 时应填写 `http://你的服务器IP`；这个地址用于下载，不能填写 Docker 内网服务名。修改后执行 `docker compose restart aice`，重启会清空已有暂存人物卡。
 4. 在目标会话发 `.ext aice-callback on`，然后发 `.aicecard help` 检查是否能收到帮助。先验证 `.aicechat 你好`，再发送下面的建卡数据。
@@ -220,13 +220,17 @@ curl -fsS -H 'Content-Type: text/plain; charset=utf-8' \
 HP:11 <DB:0> [440/515]
 ```
 
-呆猫会把后端生成的下载地址和卡 ID 回复到当前会话。插件发送文本链接，不直接上传群文件。收到结果后可以继续发送：
+呆猫会把后端生成的下载地址和卡 ID 回复到当前会话。官方 QQ 机器人的群聊和 C2C 私聊（海豹消息平台标识为 `OpenQQ`）还会通过海豹发送 Excel 文件；NapCat/OneBot 等第三方接入、QQ 频道和未知平台只回复下载链接。`.aicechat` 中生成的人物卡也遵循此规则。收到结果后可以继续发送：
 
 ```text
 .aicecard 把人物卡 <返回的卡ID> 的力量改成60，其他字段保持不变，重新导出。
 ```
 
 普通聊天继续使用 `.aicechat <问题>`。空输入、`help` 或 `帮助` 会显示指令用法。使用 QQ 官方机器人的斜杠指令时，需要在 QQ 开放平台登记要使用的 `aicechat`、`aicecard` 指令。
+
+文件发送要求海豹的官方 QQ 适配器支持 `[CQ:file,url=...]`，且 `public_base_url` 生成的完整下载地址可被 QQ 平台访问。插件不自行保存机器人密钥或调用 QQ API，上传与鉴权由海豹处理；只有相对下载路径时会提示补全配置。海豹 JS 的回复接口没有送达回执，因此插件不宣称文件已送达，也不自动重试；无论文件是否送达，都保留下载链接。若只收到链接而没有附件，检查海豹版本、官方机器人连接、海豹上传错误日志及公网下载地址；旧版适配器需要先更新。接口依据：[海豹官方 QQ 适配器](https://github.com/sealdice/sealdice-core/blob/master/dice/platform_adapter_official_qq.go)、[QQ 群聊富媒体上传](https://bot.q.qq.com/wiki/develop/api-v2/autogen/api/v2_groups_group_openid_files.post.html)。
+
+更新后可分别在官方机器人和第三方接入的会话发送上面的建卡指令：官方机器人应返回下载链接、卡 ID 和 Excel 附件，第三方接入只返回链接与卡 ID。打开附件确认属性，再用返回的卡 ID 修改并重新导出。该插件更新无需重新构建 Aice 二进制。
 
 若提示无法连接，检查 Docker 网络与 `chat_url`；503 表示后端未配置模型，502 需查看 `docker compose logs --tail=100 aice`。直接 HTTP 建卡已成功、插件也能回复但链接打不开时，检查 `public_base_url` 的协议、地址和 Nginx 转发。插件不保存聊天历史或自动记忆卡 ID，修改时需明确附带 ID。
 
