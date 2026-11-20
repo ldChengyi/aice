@@ -1,12 +1,12 @@
 // ==UserScript==
 // @name         呆猫 · Aice 聊天与人物卡
 // @author       Aice
-// @version      0.4.0
+// @version      0.4.1
 // @description  通过 Aice 创建或修改 CoC7 人物卡，保留下载链接，并由官方 QQ 机器人发送 Excel。
 // ==/UserScript==
 
 (() => {
-  const ext = seal.ext.new('aice-callback', 'Aice', '0.4.0');
+  const ext = seal.ext.new('aice-callback', 'Aice', '0.4.1');
 
   // 后端文本只作为文本回复，避免模型内容被海豹解释成 CQ 文件或其他操作。
   function escapeCqText(text) {
@@ -25,14 +25,15 @@
       const downloadUrl = match[1];
       const cardId = match[2];
       const exportPath = `/ui/character-cards/exports/${cardId}`;
+      const namedExportPath = `${exportPath}/character-card.xlsx`;
       if (sent.has(cardId)) continue;
-      if (downloadUrl === exportPath) {
+      if (downloadUrl === exportPath || downloadUrl === namedExportPath) {
         missingPublicUrl = true;
         continue;
       }
       // 只识别后端固定格式的导出链接，要求路径与卡 ID 对应，不解析普通聊天里的任意链接。
-      if (!/^https?:\/\/[^/?#@\s]+\/ui\/character-cards\/exports\/[0-9a-f-]+$/.test(downloadUrl)
-          || !downloadUrl.endsWith(exportPath)) continue;
+      if (!/^https?:\/\/[^/?#@\s]+\/ui\/character-cards\/exports\/[0-9a-f-]+(?:\/character-card\.xlsx)?$/.test(downloadUrl)
+          || !(downloadUrl.endsWith(exportPath) || downloadUrl.endsWith(namedExportPath))) continue;
 
       sent.add(cardId);
       try {

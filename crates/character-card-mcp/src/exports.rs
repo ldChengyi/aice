@@ -124,7 +124,8 @@ impl CardExports {
         let bytes = Bytes::from(card.export()?);
         let id = Uuid::new_v4().to_string();
         let result = ExportResult {
-            download_url: format!("{}/ui/character-cards/exports/{id}", self.public_base_url),
+            // QQ 按 URL 末段命名附件，不能只依赖下载响应的 Content-Disposition。
+            download_url: format!("{}/ui/character-cards/exports/{id}/character-card.xlsx", self.public_base_url),
             card_id: id.clone(),
             applied_fields: combined.clone(),
             expires_in_seconds: EXPORT_TTL.as_secs(),

@@ -12,6 +12,10 @@ pub fn build(state: AppState) -> Router {
     // /ui 路由组与 Nginx 的公开转发范围对应，包含页面、样式和导出下载。
     let frontend = Router::new()
         .route(
+            "/character-cards/exports/{id}/character-card.xlsx",
+            get(handle::character_card::download),
+        )
+        .route(
             "/character-cards/exports/{id}",
             get(handle::character_card::download),
         )
